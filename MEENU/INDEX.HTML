@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Job Application Tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0f1724; /* deep navy */
+      --card:#0b1220;
+      --muted:#9aa4b2;
+      --accent:#60a5fa; /* blue */
+      --success:#34d399;
+      --danger:#fb7185;
+      --glass: rgba(255,255,255,0.04);
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,#071023 0%, #071833 100%);color:#e6eef8;min-height:100vh;}
+    .container{max-width:1100px;margin:28px auto;padding:24px}
+
+    header{display:flex;gap:16px;align-items:center;justify-content:space-between;margin-bottom:18px}
+    .brand{display:flex;gap:12px;align-items:center}
+    .logo{width:52px;height:52px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#7dd3fc);display:flex;align-items:center;justify-content:center;font-weight:800;color:#04293a}
+    h1{margin:0;font-size:20px}
+    p.lead{margin:0;color:var(--muted);font-size:13px}
+
+    .grid{display:grid;grid-template-columns:360px 1fr;gap:18px}
+
+    /* left panel */
+    .card{background:var(--card);padding:16px;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,0.6);}
+    label{display:block;font-size:13px;margin-bottom:6px;color:var(--muted)}
+    input[type=text], input[type=date], select, textarea{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:var(--glass);color:inherit;font-size:14px}
+    textarea{min-height:90px;resize:vertical}
+    .row{display:flex;gap:8px}
+    .btn{display:inline-block;padding:10px 12px;border-radius:8px;border:0;background:var(--accent);color:#04293a;font-weight:600;cursor:pointer}
+    .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted);font-weight:600}
+    .btn.warn{background:var(--danger);color:white}
+
+    form .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+
+    /* right panel */
+    .controls{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+    .search{flex:1}
+    .chips{display:flex;gap:8px}
+    .chip{padding:8px 10px;border-radius:999px;border:1px solid rgba(255,255,255,0.04);background:transparent;cursor:pointer;font-size:13px}
+    .chip.active{background:linear-gradient(90deg,var(--accent),#7dd3fc);color:#04293a;border:0}
+
+    table{width:100%;border-collapse:collapse;font-size:14px}
+    th,td{padding:12px 10px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.03);vertical-align:middle}
+    th{color:var(--muted);font-weight:600;font-size:13px}
+    .status{padding:6px 8px;border-radius:8px;font-weight:600;font-size:13px;display:inline-block}
+    .status.applied{background:rgba(96,165,250,0.12);color:var(--accent)}
+    .status.interview{background:rgba(138,88,248,0.12);color:#a78bfa}
+    .status.hired{background:rgba(52,211,153,0.12);color:var(--success)}
+    .status.rejected{background:rgba(251,113,133,0.08);color:var(--danger)}
+
+    .small{font-size:12px;color:var(--muted)}
+
+    /* summary */
+    .summary{display:flex;gap:10px;margin-bottom:12px}
+    .stat{flex:1;padding:10px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);text-align:center}
+    .stat h3{margin:0;font-size:20px}
+    .stat p{margin:4px 0 0;color:var(--muted);font-size:13px}
+
+    /* responsive */
+    @media (max-width:880px){
+      .grid{grid-template-columns:1fr;}
+      .logo{width:44px;height:44px}
+    }
+
+    /* modal */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(2,6,23,0.6);display:flex;align-items:center;justify-content:center;z-index:60}
+    .modal{background:var(--card);padding:16px;border-radius:10px;max-width:520px;width:96%}
+    .flex{display:flex;gap:8px;align-items:center}
+
+    /* tiny helpers */
+    .muted{color:var(--muted)}
+    .right{text-align:right}
+    .actions .btn.small{padding:8px 10px;font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <div class="logo">J</div>
+        <div>
+          <h1>Job Application Tracker</h1>
+          <p class="lead">Track applications, interviews, and outcomes — fully client-side (localStorage)</p>
+        </div>
+      </div>
+      <div class="right small muted">Built with HTML • CSS • JavaScript</div>
+    </header>
+
+    <main class="grid">
+      <!-- LEFT: Form -->
+      <section class="card">
+        <h3 style="margin:0 0 8px">Add / Edit Application</h3>
+        <form id="appForm">
+          <input type="hidden" id="appId">
+
+          <label for="company">Company Name</label>
+          <input id="company" type="text" placeholder="e.g., Google" required>
+
+          <label for="position">Position</label>
+          <input id="position" type="text" placeholder="e.g., Frontend Developer" required>
+
+          <div class="row" style="margin-top:8px">
+            <div style="flex:1">
+              <label for="date">Application Date</label>
+              <input id="date" type="date" required>
+            </div>
+            <div style="width:140px">
+              <label for="status">Status</label>
+              <select id="status">
+                <option value="Applied">Applied</option>
+                <option value="Interview">Interview</option>
+                <option value="Hired">Hired</option>
+                <option value="Rejected">Rejected</option>
+              </select>
+            </div>
+          </div>
+
+          <label for="notes" style="margin-top:8px">Notes</label>
+          <textarea id="notes" placeholder="Interview details, contact person, follow-up reminders..."></textarea>
+
+          <div class="actions">
+            <button type="reset" class="btn ghost" id="resetBtn">Clear</button>
+            <button class="btn" id="saveBtn">Add Application</button>
+          </div>
+        </form>
+
+        <hr style="border:none;height:1px;background:rgba(255,255,255,0.03);margin:14px 0">
+        <div class="small muted">Tip: Use the search & filters at right. Data is stored locally in your browser (localStorage).</div>
+      </section>
+
+      <!-- RIGHT: List + Controls -->
+      <section>
+        <div class="card" style="margin-bottom:12px">
+          <div class="summary" id="summary">
+            <!-- stats populated by JS -->
+          </div>
+
+          <div class="controls">
+            <input class="search" id="search" placeholder="Search by company or position...">
+            <div class="chips" id="statusChips">
+              <button class="chip active" data-status="All">All</button>
+              <button class="chip" data-status="Applied">Applied</button>
+              <button class="chip" data-status="Interview">Interview</button>
+              <button class="chip" data-status="Hired">Hired</button>
+              <button class="chip" data-status="Rejected">Rejected</button>
+            </div>
+            <div style="margin-left:auto" class="right">
+              <button class="btn ghost" id="exportBtn">Export JSON</button>
+              <button class="btn ghost" id="importBtn">Import</button>
+              <input type="file" id="fileInput" style="display:none" accept="application/json">
+            </div>
+          </div>
+
+          <div style="overflow:auto;max-height:56vh">
+            <table id="appsTable">
+              <thead>
+                <tr>
+                  <th>Company</th>
+                  <th>Position</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                  <th>Notes</th>
+                  <th class="right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- rows injected by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card small muted">
+          <strong>How to use</strong>
+          <ol>
+            <li>Add application details in the left panel.</li>
+            <li>Use search, chips to filter, and buttons to export/import data.</li>
+            <li>All data stays in your browser. To keep across devices, use Export then save the JSON file.</li>
+          </ol>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- modal area (hidden) -->
+  <div id="modalRoot"></div>
+
+  <script>
+    /* ---------- Data model & storage ---------- */
+    const STORAGE_KEY = 'job_apps_v1';
+
+    function uid() { return 'id_' + Math.random().toString(36).slice(2,9); }
+
+    function loadApps(){
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return [];
+      try{ return JSON.parse(raw) } catch(e){ console.error('Bad localStorage data',e); return [] }
+    }
+    function saveApps(list){ localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); }
+
+    /* ---------- UI helpers ---------- */
+    const form = document.getElementById('appForm');
+    const companyEl = document.getElementById('company');
+    const positionEl = document.getElementById('position');
+    const dateEl = document.getElementById('date');
+    const statusEl = document.getElementById('status');
+    const notesEl = document.getElementById('notes');
+    const appIdEl = document.getElementById('appId');
+    const appsTableBody = document.querySelector('#appsTable tbody');
+    const searchEl = document.getElementById('search');
+    const chips = document.getElementById('statusChips');
+    const summaryEl = document.getElementById('summary');
+    const resetBtn = document.getElementById('resetBtn');
+    const exportBtn = document.getElementById('exportBtn');
+    const importBtn = document.getElementById('importBtn');
+    const fileInput = document.getElementById('fileInput');
+
+    let apps = loadApps();
+    let currentFilter = 'All';
+    let currentSearch = '';
+
+    /* ---------- Render ---------- */
+    function render(){
+      renderSummary();
+      renderTable();
+      updateFormState();
+    }
+
+    function renderSummary(){
+      const total = apps.length;
+      const applied = apps.filter(a=>a.status==='Applied').length;
+      const interview = apps.filter(a=>a.status==='Interview').length;
+      const hired = apps.filter(a=>a.status==='Hired').length;
+      const rejected = apps.filter(a=>a.status==='Rejected').length;
+
+      summaryEl.innerHTML = `
+        <div class="stat"><h3>${total}</h3><p>Total Applied</p></div>
+        <div class="stat"><h3>${applied}</h3><p>Applied</p></div>
+        <div class="stat"><h3>${interview}</h3><p>Interviews</p></div>
+        <div class="stat"><h3>${hired}</h3><p>Hired</p></div>
+        <div class="stat"><h3>${rejected}</h3><p>Rejected</p></div>
+      `;
+    }
+
+    function renderTable(){
+      const filtered = apps
+        .filter(a => currentFilter==='All' ? true : a.status===currentFilter)
+        .filter(a => {
+          if(!currentSearch) return true;
+          const s = currentSearch.toLowerCase();
+          return a.company.toLowerCase().includes(s) || a.position.toLowerCase().includes(s) || (a.notes||'').toLowerCase().includes(s);
+        })
+        .sort((x,y)=> new Date(y.date) - new Date(x.date));
+
+      appsTableBody.innerHTML = filtered.map(a=>`<tr data-id="${a.id}">
+        <td><strong>${escapeHtml(a.company)}</strong><div class="small muted">${a.location||''}</div></td>
+        <td>${escapeHtml(a.position)}</td>
+        <td class="small">${formatDate(a.date)}</td>
+        <td><span class="status ${a.status.toLowerCase()}">${a.status}</span></td>
+        <td class="small">${escapeHtml(a.notes||'')}</td>
+        <td class="right">
+          <button class="btn ghost small" data-action="edit">Edit</button>
+          <button class="btn ghost small" data-action="delete">Delete</button>
+        </td>
+      </tr>`).join('');
+
+      if(filtered.length===0){
+        appsTableBody.innerHTML = '<tr><td colspan="6" class="small muted">No applications yet — add one on the left.</td></tr>'
+      }
+    }
+
+    function updateFormState(){
+      const id = appIdEl.value;
+      const saveBtn = document.getElementById('saveBtn');
+      if(id){ saveBtn.textContent = 'Update Application' } else { saveBtn.textContent = 'Add Application' }
+    }
+
+    /* ---------- events ---------- */
+    form.addEventListener('submit', e=>{
+      e.preventDefault();
+      const id = appIdEl.value || uid();
+      const payload = {
+        id,
+        company: companyEl.value.trim(),
+        position: positionEl.value.trim(),
+        date: dateEl.value || new Date().toISOString().slice(0,10),
+        status: statusEl.value,
+        notes: notesEl.value.trim()
+      };
+
+      const exists = apps.find(a=>a.id===id);
+      if(exists){
+        apps = apps.map(a=> a.id===id ? payload : a);
+        toast('Application updated');
+      } else {
+        apps.unshift(payload);
+        toast('Application added');
+      }
+      saveApps(apps);
+      form.reset(); appIdEl.value = '';
+      render();
+    });
+
+    resetBtn.addEventListener('click', ()=>{ appIdEl.value=''; updateFormState(); });
+
+    appsTableBody.addEventListener('click', e=>{
+      const tr = e.target.closest('tr');
+      if(!tr) return;
+      const id = tr.dataset.id;
+      const action = e.target.dataset.action;
+      if(action==='edit') return startEdit(id);
+      if(action==='delete') return confirmDelete(id);
+    });
+
+    function startEdit(id){
+      const item = apps.find(a=>a.id===id); if(!item) return;
+      appIdEl.value = item.id;
+      companyEl.value = item.company;
+      positionEl.value = item.position;
+      dateEl.value = item.date;
+      statusEl.value = item.status;
+      notesEl.value = item.notes;
+      window.scrollTo({top:0, behavior:'smooth'});
+      updateFormState();
+    }
+
+    function confirmDelete(id){
+      const item = apps.find(a=>a.id===id);
+      if(!item) return;
+      openModal(`Delete application for <strong>${escapeHtml(item.company)}</strong>?`, ()=>{
+        apps = apps.filter(a=>a.id!==id);
+        saveApps(apps);
+        render();
+        closeModal();
+        toast('Deleted');
+      });
+    }
+
+    searchEl.addEventListener('input', ()=>{ currentSearch = searchEl.value.trim(); render(); });
+
+    chips.addEventListener('click', e=>{
+      const btn = e.target.closest('.chip'); if(!btn) return;
+      Array.from(chips.children).forEach(c=>c.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter = btn.dataset.status;
+      render();
+    });
+
+    /* ---------- export/import ---------- */
+    exportBtn.addEventListener('click', ()=>{
+      const dataStr = JSON.stringify(apps, null, 2);
+      const blob = new Blob([dataStr], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'job-applications.json'; a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    importBtn.addEventListener('click', ()=> fileInput.click());
+    fileInput.addEventListener('change', ()=>{
+      const f = fileInput.files[0]; if(!f) return;
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        try{
+          const data = JSON.parse(reader.result);
+          if(Array.isArray(data)){
+            // optionally merge or replace — here we replace
+            apps = data.map(item=> ({...item, id:item.id || uid()}));
+            saveApps(apps);
+            render();
+            toast('Imported successfully');
+          } else throw new Error('Not an array');
+        }catch(err){ toast('Import failed: invalid JSON') }
+      };
+      reader.readAsText(f);
+      fileInput.value='';
+    });
+
+    /* ---------- modals & toast ---------- */
+    function openModal(htmlContent, onConfirm){
+      const root = document.getElementById('modalRoot');
+      root.innerHTML = `
+        <div class="modal-backdrop">
+          <div class="modal">
+            <div style="margin-bottom:12px">${htmlContent}</div>
+            <div style="display:flex;gap:8px;justify-content:flex-end">
+              <button class="btn ghost" id="modalCancel">Cancel</button>
+              <button class="btn warn" id="modalConfirm">Confirm</button>
+            </div>
+          </div>
+        </div>`;
+
+      document.getElementById('modalCancel').addEventListener('click', closeModal);
+      document.getElementById('modalConfirm').addEventListener('click', onConfirm);
+    }
+    function closeModal(){ document.getElementById('modalRoot').innerHTML = ''; }
+
+    function toast(msg){
+      const el = document.createElement('div');
+      el.style.position='fixed';el.style.right='20px';el.style.bottom='20px';el.style.background='rgba(2,6,23,0.85)';el.style.padding='10px 14px';el.style.borderRadius='10px';el.style.boxShadow='0 8px 24px rgba(2,6,23,0.6)';el.style.zIndex=9999;el.style.color='white';el.style.fontWeight=600;el.textContent=msg;
+      document.body.appendChild(el);
+      setTimeout(()=>{ el.style.transition='opacity 300ms'; el.style.opacity=0; setTimeout(()=>el.remove(),300) },1600);
+    }
+
+    /* ---------- util ---------- */
+    function formatDate(d){ if(!d) return '-'; try{ const dt = new Date(d); return dt.toLocaleDateString(); }catch(e){ return d } }
+    function escapeHtml(s){ if(!s) return ''; return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+    /* ---------- init with sample data if empty ---------- */
+    (function init(){
+      if(apps.length===0){
+        apps = [
+          {id:uid(), company:'Acme Corp', position:'Frontend Developer', date: new Date(Date.now()-86400000*6).toISOString().slice(0,10), status:'Applied', notes:'Referred by Rahul'},
+          {id:uid(), company:'ByteWorks', position:'UI Engineer', date: new Date(Date.now()-86400000*20).toISOString().slice(0,10), status:'Interview', notes:'Round 1 scheduled'},
+          {id:uid(), company:'CloudNine', position:'Intern - Web', date: new Date().toISOString().slice(0,10), status:'Rejected', notes:'Not qualified'},
+        ];
+        saveApps(apps);
+      }
+      // set today's date as default for form
+      dateEl.value = new Date().toISOString().slice(0,10);
+      render();
+    })();
+  </script>
+</body>
+</html>
